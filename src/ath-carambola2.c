@@ -25,8 +25,11 @@
 /* Driver include */
 #include <asm/mach-ath79/ar71xx_regs.h>
 #include <asm/mach-ath79/ath79.h>
+#include <sound/pcm_params.h>
+#include <sound/soc-dai.h>
 #include "ath79-i2s.h"
 #include "ath79-pcm.h"
+#include "wm8904.h"
 
 
 typedef unsigned int ar7240_reg_t;
@@ -69,14 +72,72 @@ typedef unsigned int ar7240_reg_t;
 
 static struct platform_device *carambola_snd_device;
 
+static int ath79_wm8904_hw_params(struct snd_pcm_substream *substream,
+                                  struct snd_pcm_hw_params *params)
+{
+        struct snd_soc_pcm_runtime *rtd = substream->private_data;
+        struct snd_soc_dai *codec_dai = rtd->codec_dai;
+        struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+        unsigned int pll_out;
+        int ret;
+
+        if (params_format(params) == SNDRV_PCM_FORMAT_S24_LE) 
+                pll_out = params_rate(params) * 384;
+        else if (params_rate(params) == 8000 || params_rate(params) == 11025) 
+                pll_out = params_rate(params) * 513;
+        else 
+                pll_out = params_rate(params) * 256;
+
+        /*ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S | 
+                                  SND_SOC_DAIFMT_NB_NF |
+                                  SND_SOC_DAIFMT_CBM_CFM);*/
+        ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S | 
+                                  SND_SOC_DAIFMT_NB_NF |
+                                  SND_SOC_DAIFMT_CBS_CFS);
+        if (ret < 0) {
+                printk("codec_dai snd_soc_dai_set_fmt failed: %d\n", ret);
+                return ret;
+        }
+
+        ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S | 
+                                  SND_SOC_DAIFMT_NB_NF | 
+                                  SND_SOC_DAIFMT_CBM_CFM);
+        if (ret < 0) {
+                printk("cpu_dai snd_soc_dai_set_fmt failed: %d\n", ret);
+                return ret;
+        }
+
+        /*ret = snd_soc_dai_set_pll(codec_dai, WM8904_CLK_MCLK, 
+                                  WM8904_FLL_MCLK, ATH79_WM8904_FREQ, 
+                                  pll_out);
+        if (ret < 0) 
+                return ret;*/
+
+        ret = snd_soc_dai_set_sysclk(codec_dai, WM8904_CLK_MCLK,
+                                     pll_out, SND_SOC_CLOCK_IN);
+        if (ret < 0) {
+                printk("snd_soc_dai_set_sysclk: %d\n", ret);
+                return ret;
+        }
+       
+        return 0; 
+}
+
+static struct snd_soc_ops ath79_wm8904_ops = {
+//        .startup = ath79_wm8904_startup,
+//        .shutdown = ath79_wm8904_shutdown,
+        .hw_params = ath79_wm8904_hw_params,
+};
+
 static struct snd_soc_dai_link carambola_dai = {
-	.name = "Carambola2 audio",
+        .name = "Carambola2 audio",
 	.stream_name = "Carambola2 audio",
 	.cpu_dai_name = "ath79-i2s",
-	.codec_dai_name = "wm8727-hifi",
+	.codec_dai_name = "wm8918-hifi",
 	.platform_name = "ath79-pcm-audio",
-	.codec_name = "wm8727",
+	.codec_name = "wm8904.0-001a",
 	/* use ops to check startup state */
+        .ops = &ath79_wm8904_ops,
 };
 
 static struct snd_soc_card snd_soc_carambola = {

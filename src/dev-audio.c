@@ -34,16 +34,17 @@ static struct platform_device ath79_pcm_device = {
 	.id		= -1,
 };
 
-static struct platform_device wm8727_codec = {
-	.name		= "wm8727",
-	.id		= -1,
+static struct platform_device wm8918_codec = {
+        .name           = "wm8918",
+        .id             = -1,
 };
 
 void __init ath79_audio_device_register(void)
 {
 	platform_device_register(&ath79_i2s_device);
 	platform_device_register(&ath79_pcm_device);
-	platform_device_register(&wm8727_codec);
+	//platform_device_register(&wm8727_codec);
+        platform_device_register(&wm8918_codec);
 }
 
 void __init ath79_audio_setup(void)

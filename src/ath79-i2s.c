@@ -144,11 +144,18 @@ static int ath79_i2s_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
+static int ath79_i2s_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
+{
+        return 0;
+}
+
+
 static struct snd_soc_dai_ops ath79_i2s_dai_ops = {
 	.startup	= ath79_i2s_startup,
 	.shutdown	= ath79_i2s_shutdown,
 	.trigger	= ath79_i2s_trigger,
 	.hw_params	= ath79_i2s_hw_params,
+        .set_fmt        = ath79_i2s_set_fmt,
 };
 
 static struct snd_soc_dai_driver ath79_i2s_dai = {
